@@ -13,21 +13,20 @@ const dbx = new dropbox.Dropbox({
 
 function getCrossword(date) {
   const d = moment(date);
-  const crosswordURL = new URL(`https://www.nytimes.com/svc/crosswords/v2/puzzle/print/${d.format('MMMDDYY')}.pdf`);
+  const crosswordURL = new URL(`https://s.wsj.net/public/resources/documents/${d.format('[XWD]MMDDYYYY')}.pdf`);
 
   console.log(`Getting crossword for ${d.format('dddd (MM/DD/YYYY)')}`);
   console.log(`Crossword URL: ${crosswordURL}`);
 
   fetch(crosswordURL, {
     headers: {
-      Referer: 'https://www.nytimes.com/crosswords/archive/daily',
-      Cookie: process.env.NYT_COOKIE,
+      Referer: 'https://www.wsj.com/news/puzzle',
     },
   }).then((res) => {
     if (res.status === 200) {
       res.arrayBuffer().then((buffer) => {
         const normalizedUploadPath = path.normalize(process.env.DROPBOX_UPLOAD_PATH);
-        const fileName = `${d.format('YYYYMMDD')} - NYT Crossword.pdf`
+        const fileName = `${d.format('YYYYMMDD')} - WSJ Crossword.pdf`
         const filePath = path.join(normalizedUploadPath, fileName);
 
         console.log(`Uploading crossword to ${filePath}`);
@@ -65,15 +64,15 @@ function run() {
   const currentDay = todayNY.getDay();
   const currentHour = todayNY.getHours();
 
-  const isWeekendCrossword = [0, 6].includes(currentDay);
+  const isSunday = currentDay === 0;
 
-  // Is it a weekday and between 10:00 and 10:59pm local NY time?
-  const shouldFetchWeekdayCrossword = !isWeekendCrossword && currentHour === 22;
+  // Is it any day other than sunday between 1:00 and 1:59pm local NY time?
+  const shouldFetchDailyCrossword = !isSunday && currentHour === 1 + 12;
 
-  // Is it the weekend and between 6:00 and 6:59pm local NY time?
-  const shouldFetchWeekendCrossword = isWeekendCrossword && currentHour === 18;
+  // Is it Sunday and between 9:00 and 9:59pm local NY time?
+  const shouldFetchSundayCrossword = isSunday && currentHour === 9 + 12;
 
-  if (shouldFetchWeekdayCrossword || shouldFetchWeekendCrossword) {
+  if (shouldFetchDailyCrossword || shouldFetchSundayCrossword) {
     getCrossword(tomorrowNY);
   } else {
     console.log('Not ready to fetch crossword yet.');
